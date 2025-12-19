@@ -84,26 +84,56 @@ jobs:
       matrix:
         include:
           - toolset: msvc-14.3
-            cxxstd: "14,17,20,latest"
             os: windows-2022
 
-    runs-on: ${{matrix.os}}
+    runs-on: ${{ matrix.os }}
+
+    defaults:
+      run:
+        shell: pwsh
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Boost 1.90
-        shell: cmd
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Install Boost.MultiIndex 1.90 and dependencies
         run: |
-          cd %GITHUB_WORKSPACE%
-          git clone -b boost-1.90.0 https://github.com/boostorg/boost.git boost-root
+          cd $env:GITHUB_WORKSPACE
+          git clone -b boost-1.90.0 --depth 1 https://github.com/boostorg/boost.git boost-root
           cd boost-root
-          git submodule update --init
-          cmd /c bootstrap
-          b2 -d0 headers
+          git submodule update --init libs/multi_index tools/boostdep
+          python tools/boostdep/depinst/depinst.py multi_index
+          .\bootstrap.bat
+          .\b2.exe -d0 headers
 
       - name: Install Boost.MultiIndex 1.91
-        shell: cmd
         run: |
-          cd %GITHUB_WORKSPACE%
+          cd $env:GITHUB_WORKSPACE
           git clone -b develop https://github.com/boostorg/multi_index.git multi_index-1_91-root
+
+      - name: Run compilations
+        run: |
+          cd $env:GITHUB_WORKSPACE
+          $boost90 = Join-Path $env:GITHUB_WORKSPACE "boost-root"
+          $mi91inc = Join-Path $env:GITHUB_WORKSPACE "multi_index-1_91-root\include"
+          for ($i = 1; $i -le 10; $i++) {
+            Write-Host "run $i"
+            $sw = [System.Diagnostics.Stopwatch]::StartNew()
+            cl.exe /nologo /EHsc /O2 /std:c++latest /I"$boost90" main.cpp /c | Out-Host
+            $sw.Stop()
+            Write-Host ("{0:N3}s" -f $sw.Elapsed.TotalSeconds)
+
+            $sw = [System.Diagnostics.Stopwatch]::StartNew()
+            cl.exe /nologo /EHsc /O2 /std:c++latest /I"$mi91inc" /I"$boost90" main.cpp /c | Out-Host
+            $sw.Stop()
+            Write-Host ("{0:N3}s" -f $sw.Elapsed.TotalSeconds)
+
+            Remove-Item -Force -ErrorAction SilentlyContinue *.obj
+          }
