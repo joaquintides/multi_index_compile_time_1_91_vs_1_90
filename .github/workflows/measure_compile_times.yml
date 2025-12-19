@@ -71,11 +71,12 @@ jobs:
 
       - name: Run compilations
         run: |
+          cd $GITHUB_WORKSPACE
           TIMEFORMAT='%R'
           for i in {1..10}; do
             echo "run $i"
             time ${{matrix.compiler}} main.cpp  -I$GITHUB_WORKSPACE/boost-root
-            time ${{matrix.compiler}} main.cpp  -I$GITHUB_WORKSPACE/boost-root -I$GITHUB_WORKSPACE/multi_index-1_91-root/include
+            time ${{matrix.compiler}} main.cpp  -I$GITHUB_WORKSPACE/multi_index-1_91-root/include -I$GITHUB_WORKSPACE/boost-root
           done
 
   windows:
