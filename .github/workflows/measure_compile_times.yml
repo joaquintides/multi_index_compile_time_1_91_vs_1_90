@@ -54,19 +54,20 @@ jobs:
           sudo apt-get update
           sudo apt-get -y install ${{matrix.install}}
 
-      - name: Install Boost 1.90
+      - name: Install Boost.MultiIndex 1.90 and dependencies
         run: |
           cd $GITHUB_WORKSPACE
-          git clone -b boost-1.90.0 https://github.com/boostorg/boost.git boost-root
+          git clone -b boost-1.90.0 --depth 1 https://github.com/boostorg/boost.git boost-root
           cd boost-root
-          git submodule update --init
+          git submodule update --init libs/multi_index tools/boostdep
+          python tools/boostdep/depinst/depinst.py multi_index
           ./bootstrap.sh
           ./b2 -d0 headers
 
       - name: Install Boost.MultiIndex 1.91
         run: |
           cd $GITHUB_WORKSPACE
-          git clone -branch develop https://github.com/boostorg/multi_index.git multi_index-1_91-root
+          git clone -b develop https://github.com/boostorg/multi_index.git multi_index-1_91-root
 
       - name: Run compilations
         run: |
@@ -102,6 +103,7 @@ jobs:
           b2 -d0 headers
 
       - name: Install Boost.MultiIndex 1.91
+        shell: cmd
         run: |
           cd %GITHUB_WORKSPACE%
-          git clone -branch develop https://github.com/boostorg/multi_index.git multi_index-1_91-root
+          git clone -b develop https://github.com/boostorg/multi_index.git multi_index-1_91-root
