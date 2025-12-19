@@ -14,12 +14,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - toolset: gcc-15
+          - compiler: g++-15
             os: ubuntu-latest
             container: ubuntu:25.04
             install: g++-15-multilib
-          - toolset: clang
-            compiler: clang++-20
+          - compiler: clang++-20
             container: ubuntu:25.04
             os: ubuntu-latest
             install: clang-20
