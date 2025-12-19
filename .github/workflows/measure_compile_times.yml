@@ -76,10 +76,13 @@ jobs:
             echo "run $i"
             t=$( { time ${{matrix.compiler}} main.cpp -I"$GITHUB_WORKSPACE/boost-root" >/dev/null; } 2>&1 )
             echo "v1.90: $t"
+            rm -f *.o a.out a.exe
+
             t=$( { time ${{matrix.compiler}} main.cpp \
                   -I"$GITHUB_WORKSPACE/multi_index-1_91-root/include" \
                   -I"$GITHUB_WORKSPACE/boost-root" >/dev/null; } 2>&1 )
             echo "v1.91: $t"
+            rm -f *.o a.out a.exe
           done
 
   windows:
@@ -133,11 +136,11 @@ jobs:
             cl.exe /nologo /EHsc /O2 /std:c++latest /I"$boost_root" main.cpp /c > $null
             $sw.Stop()
             Write-Host ("v1.90: {0:N3}s" -f $sw.Elapsed.TotalSeconds)
+            Remove-Item -Force -ErrorAction SilentlyContinue *.obj
 
             $sw = [System.Diagnostics.Stopwatch]::StartNew()
             cl.exe /nologo /EHsc /O2 /std:c++latest /I"$mi_1_91_root" /I"$boost_root" main.cpp /c > $null
             $sw.Stop()
             Write-Host ("v1.91: {0:N3}s" -f $sw.Elapsed.TotalSeconds)
-
             Remove-Item -Force -ErrorAction SilentlyContinue *.obj
           }
