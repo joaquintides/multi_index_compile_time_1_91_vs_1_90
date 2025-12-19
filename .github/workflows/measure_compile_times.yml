@@ -1,0 +1,107 @@
+name: Measure Boost.MultiIndex compile times
+
+on:
+  pull_request:
+  push:
+    paths-ignore:
+      - LICENSE
+      - meta/**
+      - README.md
+
+jobs:
+  posix:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - toolset: gcc-15
+            os: ubuntu-latest
+            container: ubuntu:25.04
+            install: g++-15-multilib
+          - toolset: clang
+            compiler: clang++-20
+            container: ubuntu:25.04
+            os: ubuntu-latest
+            install: clang-20
+
+    runs-on: ${{matrix.os}}
+    container:
+      image: ${{matrix.container}}
+      volumes:
+        - /node20217:/node20217:rw,rshared
+        - ${{ startsWith(matrix.container, 'ubuntu:1') && '/node20217:/__e/node20:ro,rshared' || ' ' }}
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Setup container environment
+        if: matrix.container
+        run: |
+          apt-get update
+          apt-get -y install sudo python3 git g++ curl xz-utils
+          if [[ "${{matrix.container}}" == "ubuntu:1"* ]]; then
+            # Node 20 doesn't work with Ubuntu 16/18  glibc: https://github.com/actions/checkout/issues/1590
+            curl -sL https://archives.boost.io/misc/node/node-v20.9.0-linux-x64-glibc-217.tar.xz | tar -xJ --strip-components 1 -C /node20217
+          fi
+
+      - uses: actions/checkout@v4
+
+      - name: Install packages
+        if: matrix.install
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install ${{matrix.install}}
+
+      - name: Install Boost 1.90
+        run: |
+          cd $GITHUB_WORKSPACE
+          git clone -b boost-1.90.0 https://github.com/boostorg/boost.git boost-root
+          cd boost-root
+          git submodule update --init
+          ./bootstrap.sh
+          ./b2 -d0 headers
+
+      - name: Install Boost.MultiIndex 1.91
+        run: |
+          cd $GITHUB_WORKSPACE
+          git clone -branch develop https://github.com/boostorg/multi_index.git multi_index-1_91-root
+
+      - name: Run compilations
+        run: |
+          TIMEFORMAT='%R'
+          for i in {1..10}; do
+            echo "run $i"
+            time ${{matrix.compiler}} main.cpp  -I$GITHUB_WORKSPACE/boost-root
+            time ${{matrix.compiler}} main.cpp  -I$GITHUB_WORKSPACE/boost-root -I$GITHUB_WORKSPACE/multi_index-1_91-root/include
+          done
+
+  windows:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - toolset: msvc-14.3
+            cxxstd: "14,17,20,latest"
+            os: windows-2022
+
+    runs-on: ${{matrix.os}}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Boost 1.90
+        shell: cmd
+        run: |
+          cd %GITHUB_WORKSPACE%
+          git clone -b boost-1.90.0 https://github.com/boostorg/boost.git boost-root
+          cd boost-root
+          git submodule update --init
+          cmd /c bootstrap
+          b2 -d0 headers
+
+      - name: Install Boost.MultiIndex 1.91
+        run: |
+          cd %GITHUB_WORKSPACE%
+          git clone -branch develop https://github.com/boostorg/multi_index.git multi_index-1_91-root
