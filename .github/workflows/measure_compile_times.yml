@@ -74,8 +74,12 @@ jobs:
           TIMEFORMAT='%R'
           for i in {1..10}; do
             echo "run $i"
-            time ${{matrix.compiler}} main.cpp  -I$GITHUB_WORKSPACE/boost-root
-            time ${{matrix.compiler}} main.cpp  -I$GITHUB_WORKSPACE/multi_index-1_91-root/include -I$GITHUB_WORKSPACE/boost-root
+            t=$( { time ${{matrix.compiler}} main.cpp -I"$GITHUB_WORKSPACE/boost-root" >/dev/null; } 2>&1 )
+            echo "v1.90: $t"
+            t=$( { time ${{matrix.compiler}} main.cpp \
+                  -I"$GITHUB_WORKSPACE/multi_index-1_91-root/include" \
+                  -I"$GITHUB_WORKSPACE/boost-root" >/dev/null; } 2>&1 )
+            echo "v1.91: $t"
           done
 
   windows:
@@ -121,19 +125,19 @@ jobs:
       - name: Run compilations
         run: |
           cd $env:GITHUB_WORKSPACE
-          $boost90 = Join-Path $env:GITHUB_WORKSPACE "boost-root"
-          $mi91inc = Join-Path $env:GITHUB_WORKSPACE "multi_index-1_91-root\include"
+          $boost_root = Join-Path $env:GITHUB_WORKSPACE "boost-root"
+          $mi_1_91_root = Join-Path $env:GITHUB_WORKSPACE "multi_index-1_91-root\include"
           for ($i = 1; $i -le 10; $i++) {
             Write-Host "run $i"
             $sw = [System.Diagnostics.Stopwatch]::StartNew()
-            cl.exe /nologo /EHsc /O2 /std:c++latest /I"$boost90" main.cpp /c > $null
+            cl.exe /nologo /EHsc /O2 /std:c++latest /I"$boost_root" main.cpp /c > $null
             $sw.Stop()
-            Write-Host ("{0:N3}s" -f $sw.Elapsed.TotalSeconds)
+            Write-Host ("v1.90: {0:N3}s" -f $sw.Elapsed.TotalSeconds)
 
             $sw = [System.Diagnostics.Stopwatch]::StartNew()
-            cl.exe /nologo /EHsc /O2 /std:c++latest /I"$mi91inc" /I"$boost90" main.cpp /c > $null
+            cl.exe /nologo /EHsc /O2 /std:c++latest /I"$mi_1_91_root" /I"$boost_root" main.cpp /c > $null
             $sw.Stop()
-            Write-Host ("{0:N3}s" -f $sw.Elapsed.TotalSeconds)
+            Write-Host ("v1.91: {0:N3}s" -f $sw.Elapsed.TotalSeconds)
 
             Remove-Item -Force -ErrorAction SilentlyContinue *.obj
           }
