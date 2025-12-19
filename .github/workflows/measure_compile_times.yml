@@ -60,7 +60,7 @@ jobs:
           git clone -b boost-1.90.0 --depth 1 https://github.com/boostorg/boost.git boost-root
           cd boost-root
           git submodule update --init libs/multi_index tools/boostdep
-          python tools/boostdep/depinst/depinst.py multi_index
+          python3 tools/boostdep/depinst/depinst.py multi_index
           ./bootstrap.sh
           ./b2 -d0 headers
 
